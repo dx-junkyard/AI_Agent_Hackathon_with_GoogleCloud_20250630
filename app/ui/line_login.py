@@ -17,7 +17,10 @@ _VALID_STATES: set[str] = set()
 
 load_dotenv()
 
-API_BASE_URL = os.getenv("API_URL", "http://api:8000").rsplit("/", 1)[0]
+# Use the same API_URL default as ui.py and derive the base endpoint for
+# additional API calls such as user registration.
+API_URL = os.getenv("API_URL", "http://api:8000/api/v1/user-message")
+API_BASE_URL = API_URL.rsplit("/", 1)[0]
 
 LINE_CLIENT_ID = os.getenv("LINE_CHANNEL_ID")
 LINE_CLIENT_SECRET = os.getenv("LINE_CHANNEL_SECRET")
