@@ -2,9 +2,13 @@ import os
 import secrets
 from urllib.parse import urlencode
 
+import logging
 import requests
 import streamlit as st
 from dotenv import load_dotenv
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -50,13 +54,26 @@ def _fetch_profile(access_token: str) -> dict:
 def ensure_login() -> None:
     """Ensure user has logged in via LINE. Stops execution if not."""
     if "line_access_token" in st.session_state:
+        logger.debug("Already logged in")
         return
 
     params = st.query_params.to_dict()
+    logger.info("Received query params: %s", params)
     if "code" in params:
         code = params["code"]
         state = params.get("state")
+        logger.info(
+            "LINE callback params - code: %s, state: %s, session_state: %s",
+            code,
+            state,
+            st.session_state.get("line_oauth_state"),
+        )
         if state != st.session_state.get("line_oauth_state"):
+            logger.warning(
+                "OAuth state mismatch. returned=%s session=%s",
+                state,
+                st.session_state.get("line_oauth_state"),
+            )
             st.error("State mismatch. Please try again.")
             st.stop()
         try:
@@ -66,13 +83,17 @@ def ensure_login() -> None:
             st.session_state["line_profile"] = _fetch_profile(token_data["access_token"])
             # remove query params
             st.query_params.clear()
+            logger.info("LINE login successful")
             return
         except Exception as exc:
             st.error(f"Login failed: {exc}")
+            logger.error("Failed to exchange LINE code: %s", exc)
             st.stop()
 
     state = secrets.token_hex(16)
     st.session_state["line_oauth_state"] = state
+    logger.info("Generated OAuth state: %s", state)
     login_url = _login_url(state)
+    logger.info("Login URL: %s", login_url)
     st.markdown(f"[LINE Login]({login_url})")
     st.stop()
