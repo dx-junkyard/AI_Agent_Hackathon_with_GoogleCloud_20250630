@@ -6,3 +6,4 @@ pika
 openai
 python-dotenv
 beautifulsoup4
+python-multipart

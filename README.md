@@ -102,6 +102,8 @@ UI → API → RabbitMQ → Processor → Worker → DB の流れでデータが
       - LINE Login 用に `LINE_CHANNEL_ID`、`LINE_CHANNEL_SECRET`、`LINE_REDIRECT_URI` を設定します
       - `docker compose up` を実行するとコンテナ内から自動的に読み込まれるため、`docker-compose.yaml` に環境変数を追加する必要はありません
     - 依存パッケージのインストール
+      - `requirements.api.txt` には `python-multipart` など API が動作するために必要なライブラリが含まれています
+      - `pip install -r requirements.api.txt` でインストールしてください
 
 3. **アプリケーションの起動**
     ```bash
