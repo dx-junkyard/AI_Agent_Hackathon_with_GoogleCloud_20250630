@@ -5,6 +5,7 @@ import streamlit as st
 
 from voice_input import VoiceInput
 from audio_output import AudioOutput
+from line_login import ensure_login
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,7 @@ class ChatUI:
             st.rerun()
 
     def run(self):
+        ensure_login()
         st.set_page_config(page_title="AI チャットアプリ", page_icon="🤖")
 
         if "messages" not in st.session_state:
