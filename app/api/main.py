@@ -56,8 +56,10 @@ async def create_user(request: Request) -> Dict[str, str]:
     except Exception:
         data = {}
     line_user_id = data.get("line_user_id")
+    logger.info("Registering user line_user_id=%s", line_user_id)
     repo = DBClient()
     user_id = repo.create_user(line_user_id=line_user_id)
+    logger.info("Issued user_id=%s", user_id)
     return {"user_id": user_id}
 
 # LINEのWebhookエンドポイント
@@ -71,7 +73,7 @@ async def post_usermessage(request: Request) -> str:
     ai_generator = AIClient()
     message = body.get("message", "")
     user_id = body.get("user_id")
-    logger.info("User message received: %s", message)
+    logger.info("User message received user_id=%s message=%s", user_id, message)
 
     repo = DBClient()
     if user_id:
@@ -79,6 +81,7 @@ async def post_usermessage(request: Request) -> str:
 
     urls = re.findall(r"https?://\S+", message)
     text_without_urls = re.sub(r"https?://\S+", "", message).strip()
+    logger.debug("Extracted urls=%s remaining_text=%s", urls, text_without_urls)
 
     for url in urls:
         title = ""

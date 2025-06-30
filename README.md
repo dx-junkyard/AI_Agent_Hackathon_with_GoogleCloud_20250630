@@ -115,6 +115,10 @@ UI → API → RabbitMQ → Processor → Worker → DB の流れでデータが
     - VOICEVOX: http://localhost:50021
     - RabbitMQ 管理UI: http://localhost:15672
 
+UI をコンテナ外から実行する場合など、API への接続先を変更したいときは
+`API_URL` 環境変数で FastAPI のエンドポイントを指定できます。既定では
+`http://api:8000/api/v1/user-message` が使用されます。
+
 ## 使い方
 
 ### Webインターフェース

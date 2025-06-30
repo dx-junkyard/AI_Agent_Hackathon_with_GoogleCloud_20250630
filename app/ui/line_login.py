@@ -21,6 +21,7 @@ load_dotenv()
 # additional API calls such as user registration.
 API_URL = os.getenv("API_URL", "http://api:8000/api/v1/user-message")
 API_BASE_URL = API_URL.rsplit("/", 1)[0]
+logger.info("Using API base URL: %s", API_BASE_URL)
 
 LINE_CLIENT_ID = os.getenv("LINE_CHANNEL_ID")
 LINE_CLIENT_SECRET = os.getenv("LINE_CHANNEL_SECRET")
@@ -91,11 +92,14 @@ def ensure_login() -> None:
             profile = _fetch_profile(token_data["access_token"])
             st.session_state["line_profile"] = profile
             try:
-                resp = requests.post(f"{API_BASE_URL}/users", json={"line_user_id": profile.get("userId")})
+                register_url = f"{API_BASE_URL}/users"
+                payload = {"line_user_id": profile.get("userId")}
+                logger.debug("POST %s payload=%s", register_url, payload)
+                resp = requests.post(register_url, json=payload)
                 resp.raise_for_status()
                 st.session_state["user_id"] = resp.json().get("user_id")
             except Exception as exc:
-                logger.error("Failed to register user: %s", exc)
+                logger.exception("Failed to register user")
             # remove query params
             st.query_params.clear()
             logger.info("LINE login successful")
