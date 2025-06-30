@@ -1,3 +1,10 @@
+CREATE TABLE IF NOT EXISTS users (
+    id VARCHAR(36) NOT NULL,
+    line_user_id VARCHAR(255) UNIQUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS pages (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     url TEXT,
@@ -7,6 +14,7 @@ CREATE TABLE IF NOT EXISTS pages (
     labels TEXT,
     keywords TEXT,
     search_query TEXT,
+    source_type ENUM('web','chat') NOT NULL DEFAULT 'web',
     PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

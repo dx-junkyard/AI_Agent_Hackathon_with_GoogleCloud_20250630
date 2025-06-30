@@ -7,9 +7,11 @@ from voice_input import VoiceInput
 from audio_output import AudioOutput
 from line_login import ensure_login
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 API_URL = os.environ.get("API_URL", "http://api:8000/api/v1/user-message")
+logger.info("Using API URL: %s", API_URL)
 
 
 class ChatUI:
@@ -18,14 +20,21 @@ class ChatUI:
     def __init__(self):
         self.voice = VoiceInput()
         self.audio_output = AudioOutput()
+        logger.info("ChatUI initialized")
 
     @staticmethod
     def call_api(text: str) -> str:
+        payload = {"message": text}
+        if "user_id" in st.session_state:
+            payload["user_id"] = st.session_state["user_id"]
+        logger.debug("POST %s payload=%s", API_URL, payload)
         try:
-            resp = requests.post(API_URL, json={"message": text})
+            resp = requests.post(API_URL, json=payload)
             resp.raise_for_status()
+            logger.debug("API response status=%s", resp.status_code)
             return resp.text.strip()
         except Exception as e:
+            logger.exception("API request failed")
             st.error(f"送信エラー: {e}")
             return "エラーが発生しました"
 

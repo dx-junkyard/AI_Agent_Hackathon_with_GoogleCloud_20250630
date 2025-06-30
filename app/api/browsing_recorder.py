@@ -71,8 +71,8 @@ class BrowsingRecorder:
             else:
                 cursor.execute(
                     """
-                    INSERT INTO pages (url, url_hash, title, summary, labels, keywords, search_query)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s)
+                    INSERT INTO pages (url, url_hash, title, summary, labels, keywords, search_query, source_type)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
                     """,
                     (
                         url,
@@ -82,6 +82,7 @@ class BrowsingRecorder:
                         json.dumps(data.get('labels', []), ensure_ascii=False),
                         keywords,
                         data.get('search_query'),
+                        'web',
                     ),
                 )
                 page_id = cursor.lastrowid

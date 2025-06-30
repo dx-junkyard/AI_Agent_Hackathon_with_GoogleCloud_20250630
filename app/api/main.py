@@ -1,4 +1,6 @@
 import requests
+import re
+from bs4 import BeautifulSoup
 from fastapi import (
     FastAPI,
     Request,
@@ -24,6 +26,7 @@ from app.api.ai import AIClient
 from app.api.db import DBClient
 from app.api.message_queue import publish_message
 from config import MQ_RAW_QUEUE
+from app.api.page_analyzer import analyze_page
 
 app = FastAPI()
 
@@ -44,6 +47,21 @@ openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
 # WebSocket connections storage
 active_connections: Set[WebSocket] = set()
 
+
+@app.post("/api/v1/users")
+async def create_user(request: Request) -> Dict[str, str]:
+    """Register a new user and return the generated ID."""
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    line_user_id = data.get("line_user_id")
+    logger.info("Registering user line_user_id=%s", line_user_id)
+    repo = DBClient()
+    user_id = repo.create_user(line_user_id=line_user_id)
+    logger.info("Issued user_id=%s", user_id)
+    return {"user_id": user_id}
+
 # LINEのWebhookエンドポイント
 @app.post("/api/v1/user-message")
 async def post_usermessage(request: Request) -> str:
@@ -54,12 +72,37 @@ async def post_usermessage(request: Request) -> str:
 
     ai_generator = AIClient()
     message = body.get("message", "")
-    logger.info("User message received: %s", message)
+    user_id = body.get("user_id")
+    logger.info("User message received user_id=%s message=%s", user_id, message)
+
+    repo = DBClient()
+    if user_id:
+        repo.insert_message(user_id, "user", message)
+
+    urls = re.findall(r"https?://\S+", message)
+    text_without_urls = re.sub(r"https?://\S+", "", message).strip()
+    logger.debug("Extracted urls=%s remaining_text=%s", urls, text_without_urls)
+
+    for url in urls:
+        title = ""
+        page_text = ""
+        try:
+            resp = requests.get(url, timeout=10)
+            resp.raise_for_status()
+            soup = BeautifulSoup(resp.text, "html.parser")
+            title = soup.title.string if soup.title else ""
+            page_text = soup.get_text(separator=" ", strip=True)
+        except Exception as exc:
+            logger.error("Failed to fetch %s: %s", url, exc)
+        analyze_page(title=title, text=page_text, url=url, source_type="web")
+
+    if text_without_urls:
+        analyze_page(title="", text=text_without_urls, source_type="chat")
+
     ai_response = ai_generator.create_response(message)
     logger.info(f"AI response: {ai_response}")
-    repo = DBClient()
-    repo.insert_message("me",message)
-    repo.insert_message("ai",ai_response)
+    if user_id:
+        repo.insert_message(user_id, "ai", ai_response)
     return ai_response
 
 @app.post("/api/v1/user-actions")
@@ -107,7 +150,8 @@ async def transcribe_audio(file: UploadFile = File(...)) -> Dict[str, str]:
 
     logger.info("Transcribed audio text: %s", text)
     repo = DBClient()
-    repo.insert_message("me", text)
+    if "user_id" in request.headers:
+        repo.insert_message(request.headers["user_id"], "user", text)
     return {"text": text}
 
 

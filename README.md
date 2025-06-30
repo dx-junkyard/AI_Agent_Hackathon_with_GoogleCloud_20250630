@@ -102,6 +102,8 @@ UI → API → RabbitMQ → Processor → Worker → DB の流れでデータが
       - LINE Login 用に `LINE_CHANNEL_ID`、`LINE_CHANNEL_SECRET`、`LINE_REDIRECT_URI` を設定します
       - `docker compose up` を実行するとコンテナ内から自動的に読み込まれるため、`docker-compose.yaml` に環境変数を追加する必要はありません
     - 依存パッケージのインストール
+      - `requirements.api.txt` には `python-multipart` など API が動作するために必要なライブラリが含まれています
+      - `pip install -r requirements.api.txt` でインストールしてください
 
 3. **アプリケーションの起動**
     ```bash
@@ -114,6 +116,10 @@ UI → API → RabbitMQ → Processor → Worker → DB の流れでデータが
     - API: http://localhost:8086
     - VOICEVOX: http://localhost:50021
     - RabbitMQ 管理UI: http://localhost:15672
+
+UI をコンテナ外から実行する場合など、API への接続先を変更したいときは
+`API_URL` 環境変数で FastAPI のエンドポイントを指定できます。既定では
+`http://api:8000/api/v1/user-message` が使用されます。
 
 ## 使い方
 
