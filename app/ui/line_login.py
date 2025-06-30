@@ -10,6 +10,11 @@ from dotenv import load_dotenv
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Store generated OAuth state values so we can validate callbacks even when the
+# Streamlit session is recreated after redirect.  Using an in-memory set keeps
+# the implementation simple for a single-user environment.
+_VALID_STATES: set[str] = set()
+
 load_dotenv()
 
 LINE_CLIENT_ID = os.getenv("LINE_CHANNEL_ID")
@@ -62,20 +67,18 @@ def ensure_login() -> None:
     if "code" in params:
         code = params["code"]
         state = params.get("state")
-        logger.info(
-            "LINE callback params - code: %s, state: %s, session_state: %s",
-            code,
-            state,
-            st.session_state.get("line_oauth_state"),
-        )
-        if state != st.session_state.get("line_oauth_state"):
+        logger.info("LINE callback params - code: %s, state: %s", code, state)
+
+        if state not in _VALID_STATES:
             logger.warning(
-                "OAuth state mismatch. returned=%s session=%s",
+                "OAuth state mismatch or expired. returned=%s valid_states=%s",
                 state,
-                st.session_state.get("line_oauth_state"),
+                list(_VALID_STATES),
             )
             st.error("State mismatch. Please try again.")
             st.stop()
+
+        _VALID_STATES.discard(state)
         try:
             token_data = _exchange_code(code)
             st.session_state["line_access_token"] = token_data["access_token"]
@@ -91,7 +94,7 @@ def ensure_login() -> None:
             st.stop()
 
     state = secrets.token_hex(16)
-    st.session_state["line_oauth_state"] = state
+    _VALID_STATES.add(state)
     logger.info("Generated OAuth state: %s", state)
     login_url = _login_url(state)
     logger.info("Login URL: %s", login_url)
