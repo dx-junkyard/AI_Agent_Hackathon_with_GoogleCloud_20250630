@@ -99,6 +99,7 @@ UI → API → RabbitMQ → Processor → Worker → DB の流れでデータが
     - `.env.example` をコピーして `.env` を作成し、`OPENAI_API_KEY` などの環境変数を設定します
       - `VOICEVOX_SPEAKER` や `VOICEVOX_SPEED` もこのファイルに記述します
       - `MQ_HOST` と `MQ_RAW_QUEUE`、`MQ_PROCESSED_QUEUE` を設定します（デフォルトは `rabbitmq`、`raw_actions`、`processed_actions`）
+      - LINE Login 用に `LINE_CHANNEL_ID`、`LINE_CHANNEL_SECRET`、`LINE_REDIRECT_URI` を設定します
       - `docker compose up` を実行するとコンテナ内から自動的に読み込まれるため、`docker-compose.yaml` に環境変数を追加する必要はありません
     - 依存パッケージのインストール
 
@@ -119,11 +120,12 @@ UI → API → RabbitMQ → Processor → Worker → DB の流れでデータが
 ### Webインターフェース
 
 1. ブラウザで http://localhost:8080 にアクセス
-2. テキスト入力欄にメッセージを入力
-3. 「送信」ボタンでAIと対話
-4. 🎤 ボタンを押すとブラウザで録音して送信できます
-5. AIの応答は自動で音声再生されます
-6. 会話履歴は画面上に表示されます
+2. 初回アクセス時は LINE Login が表示されるので認証します
+3. テキスト入力欄にメッセージを入力
+4. 「送信」ボタンでAIと対話
+5. 🎤 ボタンを押すとブラウザで録音して送信できます
+6. AIの応答は自動で音声再生されます
+7. 会話履歴は画面上に表示されます
 
 #### 音声入力を利用するには
 
