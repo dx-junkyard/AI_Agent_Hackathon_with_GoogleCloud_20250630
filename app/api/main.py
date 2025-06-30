@@ -1,4 +1,6 @@
 import requests
+import re
+from bs4 import BeautifulSoup
 from fastapi import (
     FastAPI,
     Request,
@@ -24,6 +26,7 @@ from app.api.ai import AIClient
 from app.api.db import DBClient
 from app.api.message_queue import publish_message
 from config import MQ_RAW_QUEUE
+from app.api.page_analyzer import analyze_page
 
 app = FastAPI()
 
@@ -55,11 +58,32 @@ async def post_usermessage(request: Request) -> str:
     ai_generator = AIClient()
     message = body.get("message", "")
     logger.info("User message received: %s", message)
+
+    repo = DBClient()
+    repo.insert_message("me", message)
+
+    urls = re.findall(r"https?://\S+", message)
+    text_without_urls = re.sub(r"https?://\S+", "", message).strip()
+
+    for url in urls:
+        title = ""
+        page_text = ""
+        try:
+            resp = requests.get(url, timeout=10)
+            resp.raise_for_status()
+            soup = BeautifulSoup(resp.text, "html.parser")
+            title = soup.title.string if soup.title else ""
+            page_text = soup.get_text(separator=" ", strip=True)
+        except Exception as exc:
+            logger.error("Failed to fetch %s: %s", url, exc)
+        analyze_page(title=title, text=page_text, url=url, source_type="web")
+
+    if text_without_urls:
+        analyze_page(title="", text=text_without_urls, source_type="chat")
+
     ai_response = ai_generator.create_response(message)
     logger.info(f"AI response: {ai_response}")
-    repo = DBClient()
-    repo.insert_message("me",message)
-    repo.insert_message("ai",ai_response)
+    repo.insert_message("ai", ai_response)
     return ai_response
 
 @app.post("/api/v1/user-actions")

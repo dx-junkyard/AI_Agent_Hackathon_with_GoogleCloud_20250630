@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS pages (
     labels TEXT,
     keywords TEXT,
     search_query TEXT,
+    source_type ENUM('web','chat') NOT NULL DEFAULT 'web',
     PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
