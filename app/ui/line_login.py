@@ -52,10 +52,10 @@ def ensure_login() -> None:
     if "line_access_token" in st.session_state:
         return
 
-    params = st.experimental_get_query_params()
+    params = st.query_params.to_dict()
     if "code" in params:
-        code = params["code"][0]
-        state = params.get("state", [None])[0]
+        code = params["code"]
+        state = params.get("state")
         if state != st.session_state.get("line_oauth_state"):
             st.error("State mismatch. Please try again.")
             st.stop()
@@ -65,7 +65,7 @@ def ensure_login() -> None:
             st.session_state["line_id_token"] = token_data.get("id_token")
             st.session_state["line_profile"] = _fetch_profile(token_data["access_token"])
             # remove query params
-            st.experimental_set_query_params()
+            st.query_params.clear()
             return
         except Exception as exc:
             st.error(f"Login failed: {exc}")
