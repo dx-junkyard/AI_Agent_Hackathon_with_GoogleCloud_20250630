@@ -47,6 +47,19 @@ openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
 # WebSocket connections storage
 active_connections: Set[WebSocket] = set()
 
+
+@app.post("/api/v1/users")
+async def create_user(request: Request) -> Dict[str, str]:
+    """Register a new user and return the generated ID."""
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    line_user_id = data.get("line_user_id")
+    repo = DBClient()
+    user_id = repo.create_user(line_user_id=line_user_id)
+    return {"user_id": user_id}
+
 # LINEのWebhookエンドポイント
 @app.post("/api/v1/user-message")
 async def post_usermessage(request: Request) -> str:
@@ -57,10 +70,12 @@ async def post_usermessage(request: Request) -> str:
 
     ai_generator = AIClient()
     message = body.get("message", "")
+    user_id = body.get("user_id")
     logger.info("User message received: %s", message)
 
     repo = DBClient()
-    repo.insert_message("me", message)
+    if user_id:
+        repo.insert_message(user_id, "user", message)
 
     urls = re.findall(r"https?://\S+", message)
     text_without_urls = re.sub(r"https?://\S+", "", message).strip()
@@ -83,7 +98,8 @@ async def post_usermessage(request: Request) -> str:
 
     ai_response = ai_generator.create_response(message)
     logger.info(f"AI response: {ai_response}")
-    repo.insert_message("ai", ai_response)
+    if user_id:
+        repo.insert_message(user_id, "ai", ai_response)
     return ai_response
 
 @app.post("/api/v1/user-actions")
@@ -131,7 +147,8 @@ async def transcribe_audio(file: UploadFile = File(...)) -> Dict[str, str]:
 
     logger.info("Transcribed audio text: %s", text)
     repo = DBClient()
-    repo.insert_message("me", text)
+    if "user_id" in request.headers:
+        repo.insert_message(request.headers["user_id"], "user", text)
     return {"text": text}
 
 

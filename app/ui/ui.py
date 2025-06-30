@@ -21,8 +21,11 @@ class ChatUI:
 
     @staticmethod
     def call_api(text: str) -> str:
+        payload = {"message": text}
+        if "user_id" in st.session_state:
+            payload["user_id"] = st.session_state["user_id"]
         try:
-            resp = requests.post(API_URL, json={"message": text})
+            resp = requests.post(API_URL, json=payload)
             resp.raise_for_status()
             return resp.text.strip()
         except Exception as e:
